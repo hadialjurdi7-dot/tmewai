@@ -1,0 +1,177 @@
+name: Release Windows x64
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+# Signing is optional: without WINDOWS_CERT_PFX_BASE64 (or
+# WINDOWS_CERT_THUMBPRINT) the build still runs, stays unsigned, and the
+# signature gate is skipped with a warning. See tool/windows/README.md.
+env:
+  FLUTTER_VERSION: '3.47.9'
+  RCEDIT_VERSION: '2.0.0'
+  RCEDIT_SHA256: '3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a'
+  TIMESTAMP_URL: 'http://timestamp.digicert.com'
+
+jobs:
+  release:
+    name: Build, stamp, sign and publish Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Fetch pinned rcedit (VERSIONINFO stamping)
+        shell: pwsh
+        run: |
+          $url = "https://github.com/electron/rcedit/releases/download/v$env:RCEDIT_VERSION/rcedit-x64.exe"
+          $exe = Join-Path $env:RUNNER_TEMP 'rcedit-x64.exe'
+          Invoke-WebRequest -Uri $url -OutFile $exe
+          $actual = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:RCEDIT_SHA256) { throw "rcedit hash mismatch: $actual" }
+          "RCEDIT_PATH=$exe" | Out-File $env:GITHUB_ENV -Append
+
+      - name: Generate the Windows runner
+        run: pwsh -File tool/windows/release.ps1 -Step prepare
+
+      - name: Drop the generated placeholder widget test
+        shell: pwsh
+        run: Remove-Item test/widget_test.dart -ErrorAction SilentlyContinue
+
+      - name: Install Dart dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Assert the executable is named tmewai.exe
+        shell: pwsh
+        run: |
+          if (-not (Test-Path build/windows/x64/runner/Release/tmewai.exe)) {
+            Get-ChildItem build/windows/x64/runner/Release | Out-String | Write-Host
+            throw 'tmewai.exe was not produced'
+          }
+
+      - name: Stamp VERSIONINFO on every shipped PE
+        run: pwsh -File tool/windows/release.ps1 -Step finalize -RCEditPath "$env:RCEDIT_PATH" -NoZip
+
+      - name: Import the code-signing certificate
+        id: cert
+        # GitHub forbids the `secrets` context in a step `if:`, so the secret is
+        # passed through env and the step decides for itself. An empty secret
+        # keeps the build unsigned and skips the signature gate.
+        env:
+          PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+        shell: pwsh
+        run: |
+          if (-not $env:PFX_BASE64) {
+            "signed=false" | Out-File $env:GITHUB_OUTPUT -Append
+            Write-Host 'No WINDOWS_CERT_PFX_BASE64 secret: shipping an unsigned build.'
+            exit 0
+          }
+          $path = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+          [IO.File]::WriteAllBytes($path, [Convert]::FromBase64String($env:PFX_BASE64))
+          "WINDOWS_CERT_PFX=$path" | Out-File $env:GITHUB_ENV -Append
+          "signed=true" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Sign every executable and DLL
+        if: ${{ steps.cert.outputs.signed == 'true' }}
+        env:
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: pwsh -File tool/windows/release.ps1 -Step sign -TimestampUrl $env:TIMESTAMP_URL
+
+      - name: Build the installer
+        shell: pwsh
+        working-directory: tool/windows
+        run: |
+          $version = (Select-String -Path ..\..\pubspec.yaml -Pattern '^version:\s*(\S+)').Matches[0].Groups[1].Value
+          $version = ($version -split '\+')[0]
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            choco install innosetup --yes --no-progress
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          $isccArgs = @('tmewai.iss', "/DMyAppVersion=$version")
+          if ('${{ steps.cert.outputs.signed }}' -eq 'true') {
+            $isccArgs += "/Ssigntool=signtool sign /fd SHA256 /tr $env:TIMESTAMP_URL /td SHA256 `$f"
+          }
+          & $iscc @isccArgs
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
+
+      - name: Gate - metadata on every binary, signature when signing was configured
+        env:
+          TMEWAI_REQUIRE_SIGNATURE: ${{ steps.cert.outputs.signed == 'true' }}
+        run: pwsh -File tool/windows/release.ps1 -Step verify
+
+      - name: Package the release and hash everything
+        run: pwsh -File tool/windows/release.ps1 -Step finalize -NoStamp
+
+      - name: Record installer hash
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'installer not found in dist' }
+          $line = '{0} *{1}' -f (Get-FileHash $setup.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $setup.Name
+          Add-Content dist/SHA256SUMS.txt -Value $line -Encoding utf8
+
+      - name: Job summary
+        shell: pwsh
+        run: |
+          '### Windows x64 release' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+          '```' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+          Get-Content dist/SHA256SUMS.txt | Out-File $env:GITHUB_STEP_SUMMARY -Append
+          '```' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+          if ('${{ steps.cert.outputs.signed }}' -ne 'true') {
+            '> **Unsigned build** - no code-signing certificate configured. SmartScreen warns until the app builds reputation; see tool/windows/README.md.' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+          }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        # ponytail: artifacts are a convenience copy; a full artifact quota must
+        # never block the release asset (it did on v0.3.5). Drop the step if the
+        # quota keeps biting.
+        continue-on-error: true
+        with:
+          name: tmewai-windows-x64
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
+          files: |
+            dist/tmewai-windows-x64.zip
+            dist/*-setup.exe
+            dist/SHA256SUMS.txt

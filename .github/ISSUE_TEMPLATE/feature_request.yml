@@ -1,0 +1,22 @@
+name: طلب ميزة
+description: إضافة مرغوبة للمنتج
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: المشكلة التي يحلّها
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: المقترح
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: معيار القبول (كيف نعرف أنها نجحت؟)
+    validations:
+      required: true

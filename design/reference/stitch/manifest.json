@@ -1,0 +1,77 @@
+{
+  "project": "9019873365064609205",
+  "screens": [
+    {
+      "slug": "10-merged-home-ar",
+      "title": "Tmewai - الصفحة الرئيسية (الأرشيف الشخصي)",
+      "id": "2f8c94e6e68d45d68547c73ebeb733c9",
+      "name": "projects/9019873365064609205/screens/2f8c94e6e68d45d68547c73ebeb733c9",
+      "px": [
+        2560,
+        3410
+      ],
+      "png": "design/generated/10-merged-home-ar.png",
+      "html": "design/generated/10-merged-home-ar.html"
+    },
+    {
+      "slug": "11-merged-story-ar",
+      "title": "Tmewai - قصتك بالأرقام (Stories in Numbers)",
+      "id": "a16fad17941b474aab6028d4c9655182",
+      "name": "projects/9019873365064609205/screens/a16fad17941b474aab6028d4c9655182",
+      "px": [
+        2560,
+        3264
+      ],
+      "png": "design/generated/11-merged-story-ar.png",
+      "html": null
+    },
+    {
+      "slug": "12-analytics-ar",
+      "title": "Tmewai - التحليلات (Deep Analytics)",
+      "id": "214b6424809146c888d4e535ba08420e",
+      "name": "projects/9019873365064609205/screens/214b6424809146c888d4e535ba08420e",
+      "px": [
+        2560,
+        2804
+      ],
+      "png": "design/generated/12-analytics-ar.png",
+      "html": null
+    },
+    {
+      "slug": "13-messages-ar",
+      "title": "Tmewai - الرسائل (Local Chat Archive)",
+      "id": "80b798762317446f9fc9abde7fd90881",
+      "name": "projects/9019873365064609205/screens/80b798762317446f9fc9abde7fd90881",
+      "px": [
+        2560,
+        2048
+      ],
+      "png": "design/generated/13-messages-ar.png",
+      "html": null
+    },
+    {
+      "slug": "14-media-ar",
+      "title": "Tmewai - الصور (Photo Gallery)",
+      "id": "317053120e6240a7b34cea223fb30486",
+      "name": "projects/9019873365064609205/screens/317053120e6240a7b34cea223fb30486",
+      "px": [
+        2560,
+        2048
+      ],
+      "png": "design/generated/14-media-ar.png",
+      "html": null
+    },
+    {
+      "slug": "15-person-ar",
+      "title": "Tmewai - الملف الشخصي (ليلى خالد)",
+      "id": "4f556db163b54b3983f7894df3a22c59",
+      "name": "projects/9019873365064609205/screens/4f556db163b54b3983f7894df3a22c59",
+      "px": [
+        2560,
+        2776
+      ],
+      "png": "design/generated/15-person-ar.png",
+      "html": null
+    }
+  ]
+}

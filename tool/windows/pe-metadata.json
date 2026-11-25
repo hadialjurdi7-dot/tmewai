@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "VERSIONINFO stamped onto every PE that ships in the release folder.",
+    "Tokens: {version} = pubspec version as written (0.3.4+8), {marketing} = 0.3.4,",
+    "{fileVersion} = 0.3.4.8 (four PE integers), {shortVersion} = 0.3.4.",
+    "Third-party binaries keep their real vendor identity: stamping our company name",
+    "onto SQLite or the Flutter engine would be a false attribution, and Defender",
+    "scores a binary with no metadata at all as unsigned/generic."
+  ],
+  "files": {
+    "tmewai.exe": {
+      "CompanyName": "Tmewai",
+      "ProductName": "Tmewai",
+      "FileDescription": "Tmewai - explore your social data exports locally",
+      "InternalName": "tmewai.exe",
+      "OriginalFilename": "tmewai.exe",
+      "LegalCopyright": "Copyright (C) 2026 Tmewai",
+      "FileVersion": "{fileVersion}",
+      "ProductVersion": "{shortVersion}"
+    },
+    "sqlite3.dll": {
+      "CompanyName": "SQLite (sqlite.org)",
+      "ProductName": "SQLite",
+      "FileDescription": "SQLite 3 embedded database engine (x64), unmodified upstream build",
+      "InternalName": "sqlite3.dll",
+      "OriginalFilename": "sqlite3.dll",
+      "LegalCopyright": "SQLite is in the Public Domain",
+      "FileVersion": "3.54.1",
+      "ProductVersion": "3.54.1"
+    },
+    "dartjni.dll": {
+      "CompanyName": "dartjni (package:jni)",
+      "ProductName": "dartjni",
+      "FileDescription": "Dart JNI bridge (x64)",
+      "InternalName": "dartjni.dll",
+      "OriginalFilename": "dartjni.dll",
+      "LegalCopyright": "BSD-3-Clause, dart-lang",
+      "FileVersion": "{fileVersion}",
+      "ProductVersion": "{shortVersion}"
+    },
+    "flutter_windows.dll": {
+      "CompanyName": "Google LLC",
+      "ProductName": "Flutter",
+      "FileDescription": "Flutter Windows embedder library (x64)",
+      "InternalName": "flutter_windows.dll",
+      "OriginalFilename": "flutter_windows.dll",
+      "LegalCopyright": "Copyright 2013-2026 Google LLC. BSD-3-Clause.",
+      "FileVersion": "{fileVersion}",
+      "ProductVersion": "{shortVersion}"
+    }
+  }
+}

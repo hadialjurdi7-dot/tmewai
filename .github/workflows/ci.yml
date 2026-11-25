@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: Analyze + test (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Pinned: a newer stable deprecates APIs this app still uses
+          # (e.g. package:flutter/material.dart on 3.50) and --fatal-infos
+          # then fails the build. The release workflow already pins the same.
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze (fatal on info too)
+        run: flutter analyze --fatal-infos
+
+      - name: Test with coverage
+        run: flutter test --coverage --reporter expanded
+
+      - name: Coverage summary
+        run: |
+          if [ ! -f coverage/lcov.info ]; then
+            echo "coverage/lcov.info missing"; exit 1
+          fi
+          python3 - <<'PY'
+          hit = total = 0
+          for line in open('coverage/lcov.info'):
+              if line.startswith('DA:'):
+                  total += 1
+                  if int(line.split(',')[1]) > 0:
+                      hit += 1
+          pct = (100.0 * hit / total) if total else 0.0
+          text = f"Line coverage: {pct:.1f}% ({hit}/{total})"
+          print(text)
+          open('coverage/summary.txt', 'w').write(f"{pct:.1f}%\n")
+          open('coverage/summary.md', 'w').write(f"```\n{text}\n```\n")
+          PY
+          cat coverage/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-lcov
+          path: |
+            coverage/lcov.info
+            coverage/summary.txt
+          if-no-files-found: warn
+          retention-days: 14

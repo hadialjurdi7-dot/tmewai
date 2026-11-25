@@ -1,0 +1,29 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: '🚀 ميزات'
+    labels: ['feat', 'feature', 'enhancement']
+  - title: '🔐 تشفير وخصوصية'
+    labels: ['security', 'privacy', 'crypto']
+  - title: '🐛 إصلاحات'
+    labels: ['fix', 'bug']
+  - title: '⚙️ CI وجودة'
+    labels: ['ci', 'chore', 'test']
+  - title: '📚 وثائق'
+    labels: ['docs']
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+no-changes-template: '- لا تغييرات هذه المرة.'
+version-resolver:
+  major:
+    labels: ['breaking']
+  minor:
+    labels: ['feat', 'feature', 'enhancement']
+  patch:
+    labels: ['fix', 'bug', 'chore', 'docs', 'ci']
+  default: patch
+template: |
+  ## ما تغيّر
+
+  $CHANGES
+
+  **التنزيل:** ملف Windows x64 مرفق بهذا الإصدار.

@@ -1,0 +1,42 @@
+# Tmewai web — self-contained multi-stage build
+#
+# build:  docker build -f docker/Dockerfile.web -t tmewai-web .
+# run:    docker run -p 8080:80 tmewai-web     → http://localhost:8080
+#
+# Stage 1 compiles the Flutter web bundle (the SDK is pinned to the version the
+# desktop release uses); stage 2 serves it with nginx. Nothing is pre-built on
+# the host, so this works on any machine with Docker and on Dokploy.
+
+FROM debian:bookworm-slim AS build
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    FLUTTER_HOME=/opt/flutter \
+    PATH=/opt/flutter/bin:$PATH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl git unzip xz-utils ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 -b stable https://github.com/flutter/flutter.git "$FLUTTER_HOME" \
+    && flutter --version
+
+WORKDIR /app
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get
+
+COPY . .
+# The two drift assets ship from web/ so the database can open in the browser.
+RUN test -f web/sqlite3.wasm && test -f web/drift_worker.js \
+    && flutter build web --release \
+    && test -f build/web/main.dart.js \
+    && test -f build/web/sqlite3.wasm \
+    && test -f build/web/drift_worker.js
+
+FROM nginx:1.27-alpine
+
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build/web /usr/share/nginx/html
+
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -q --spider http://127.0.0.1/ || exit 1

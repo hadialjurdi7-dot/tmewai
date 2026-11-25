@@ -1,0 +1,21 @@
+# Tmewai — نسخة الويب على أي سيرفر
+#
+#   docker compose -f docker/compose.web.yaml up -d --build
+#
+# المنفذ الوحيد المكشوف هو 8080. لا volumes ولا قاعدة بيانات خارجية: الأرشيف
+# يبقى في متصفح المستخدم (IndexedDB) ولا يطلع من جهازه.
+
+services:
+  tmewai-web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    image: tmewai-web:latest
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

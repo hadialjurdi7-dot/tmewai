@@ -1,0 +1,59 @@
+name: personal_data_agent
+description: Local-first desktop app for exploring user-owned social data exports.
+publish_to: none
+version: 0.5.6+26
+
+environment:
+  # These minimums follow pubspec.lock: the resolved dependency graph needs
+  # Dart 3.13 and Flutter 3.38.4, so advertising a lower SDK would make
+  # `pub get` fail on a toolchain the package claims to support.
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.38.4'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  archive: ^4.5.2
+  file_picker: ^13.4.0
+  flutter_riverpod: ^3.4.3
+  drift: ^2.35.3
+  drift_flutter: ^0.3.1
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  crypto: ^3.0.8
+  cryptography: ^2.9.0
+  # Named in the write path so a SQLite failure can be reported by its result
+  # code instead of as one opaque "import failed".
+  sqlite3: ^3.8.0
+  onnxruntime: ^1.4.1
+  dart_sentencepiece_tokenizer: ^1.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.35.2
+  build_runner: ^2.17.1
+
+flutter:
+  uses-material-design: true
+  # Only the runtime icon is bundled; the logo and .ico are repo/CI assets.
+  assets:
+    - assets/branding/tmewai_app_icon.png
+    # Synthetic export for `/?demo=fx` — browser QA needs rows on every screen.
+    - assets/demo/facebook-export.zip
+  # The approved design uses IBM Plex Sans Arabic (design/reference/stitch).
+  # The font must be bundled: without it the app fell back to a system face and
+  # every screen read wrong next to the mockups.
+  fonts:
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+        - asset: assets/fonts/IBMPlexSansArabic-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700

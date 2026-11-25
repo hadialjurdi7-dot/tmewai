@@ -1,0 +1,39 @@
+name: بلاغ خلل
+description: خطأ في السلوك يمكن إعادة إنتاجه
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        لا ترفق أرشيفات حقيقية أو بيانات شخصية. استخدم عينة منزوعة الهوية.
+  - type: textarea
+    id: what
+    attributes:
+      label: ماذا حدث؟
+      description: السلوك الفعلي مقابل المتوقع
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: خطوات الإعادة
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: الإصدار
+      placeholder: v0.2.1
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: المجال
+      options: [استيراد, بحث, واجهة, تشفير/خصوصية, أداء, أخرى]
+    validations:
+      required: true

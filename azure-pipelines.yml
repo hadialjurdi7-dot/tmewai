@@ -1,0 +1,121 @@
+# Windows build without GitHub Actions.
+#
+# Azure Pipelines free tier gives 1,800 hosted minutes a month per organization
+# (Windows bills 2x, so ~900 effective minutes — a build here is ~12 minutes).
+# Same steps as .github/workflows/release-windows.yml, minus the code signing
+# (no certificate in Azure) and minus the GitHub release publish: the artifacts
+# land on the pipeline run page instead.
+name: tmewai-windows
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  FLUTTER_VERSION: '3.47.9'
+  RCEDIT_VERSION: '2.0.0'
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+        $zip = Join-Path $env:AGENT_TEMPDIRECTORY 'flutter.zip'
+        $root = 'C:\flutter-sdk'
+        Invoke-WebRequest -Uri "https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_$(FLUTTER_VERSION)-stable.zip" -OutFile $zip
+        Expand-Archive -Path $zip -DestinationPath 'C:\' -Force
+        Rename-Item -Path 'C:\flutter' -NewName 'flutter-sdk' -ErrorAction SilentlyContinue
+        Write-Host "##vso[task.prependpath]$root\bin"
+        & "$root\bin\flutter.bat" --version
+      displayName: 'Install Flutter $(FLUTTER_VERSION)'
+
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+        $url = "https://github.com/electron/rcedit/releases/download/v$(RCEDIT_VERSION)/rcedit-x64.exe"
+        $exe = Join-Path $env:AGENT_TEMPDIRECTORY 'rcedit-x64.exe'
+        Invoke-WebRequest -Uri $url -OutFile $exe
+        Write-Host "##vso[task.setvariable variable=RCEDIT_PATH]$exe"
+      displayName: 'Fetch rcedit'
+
+  - powershell: pwsh -File tool/windows/release.ps1 -Step prepare
+    displayName: 'Generate the Windows runner'
+
+  - powershell: Remove-Item test/widget_test.dart -ErrorAction SilentlyContinue
+    displayName: 'Drop the placeholder widget test'
+
+  - script: flutter pub get
+    displayName: 'pub get'
+
+  - script: flutter analyze
+    displayName: 'Analyze'
+
+  - script: flutter test
+    displayName: 'Test'
+
+  - script: flutter build windows --release
+    displayName: 'Build Windows release'
+
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        $exe = 'build/windows/x64/runner/Release/tmewai.exe'
+        if (-not (Test-Path $exe)) {
+          Get-ChildItem build/windows/x64/runner/Release | Out-String | Write-Host
+          throw 'tmewai.exe was not produced'
+        }
+      displayName: 'Assert tmewai.exe exists'
+
+  - powershell: pwsh -File tool/windows/release.ps1 -Step finalize -RCEditPath "$(RCEDIT_PATH)" -NoZip
+    displayName: 'Stamp VERSIONINFO'
+
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        $iscc = @(
+          "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+          "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+        ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if (-not $iscc) {
+          choco install innosetup --yes --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+        }
+        $version = (Select-String -Path ..\..\pubspec.yaml -Pattern '^version:\s*(\S+)').Matches[0].Groups[1].Value
+        $version = ($version -split '\+')[0]
+        Push-Location tool/windows
+        & $iscc tmewai.iss "/DMyAppVersion=$version"
+        $code = $LASTEXITCODE
+        Pop-Location
+        if ($code -ne 0) { throw "ISCC failed ($code)" }
+      displayName: 'Build the installer'
+
+  - powershell: pwsh -File tool/windows/release.ps1 -Step verify
+    displayName: 'Gate — metadata on every binary'
+
+  - powershell: pwsh -File tool/windows/release.ps1 -Step finalize -NoStamp
+    displayName: 'Package and hash'
+
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        $setup = Get-ChildItem dist -Filter '*-setup.exe' | Select-Object -First 1
+        if (-not $setup) { throw 'installer not found in dist' }
+        $line = '{0} *{1}' -f (Get-FileHash $setup.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $setup.Name
+        Add-Content dist/SHA256SUMS.txt -Value $line -Encoding utf8
+        Get-Content dist/SHA256SUMS.txt | Write-Host
+      displayName: 'Record installer hash'
+
+  - publish: dist
+    artifact: tmewai-windows-x64
+    displayName: 'Publish installer + zip'

@@ -1,0 +1,88 @@
+name: VirusTotal scan
+
+# Manual only: uploads a published release asset to VirusTotal and prints the
+# detection ratio in the job summary. Skipped (with a notice) when the
+# VT_API_TOKEN secret is absent, so the repository works without it.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to scan (for example v0.3.4)
+        required: true
+      asset:
+        description: Asset name inside that release
+        required: false
+        default: tmewai-windows-x64.zip
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check token
+        id: token
+        run: |
+          if [ -z "${{ secrets.VT_API_TOKEN }}" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::VT_API_TOKEN is not configured; skipping the scan."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download the release asset
+        if: steps.token.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          ASSET: ${{ inputs.asset }}
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ASSET" --dir dist
+
+      - name: Upload to VirusTotal and wait for the verdict
+        if: steps.token.outputs.present == 'true'
+        env:
+          VT_API_TOKEN: ${{ secrets.VT_API_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          ASSET: ${{ inputs.asset }}
+        run: |
+          set -euo pipefail
+          file="dist/$ASSET"
+          sha=$(sha256sum "$file" | cut -d' ' -f1)
+          echo "sha256: $sha"
+
+          # Reuse an existing report when VirusTotal already knows the file.
+          known=$(curl -sS -H "x-apikey: $VT_API_TOKEN" \
+            "https://www.virustotal.com/api/v3/files/$sha" -o /tmp/report.json -w '%{http_code}')
+          if [ "$known" != "200" ]; then
+            upload_url=$(curl -sS -H "x-apikey: $VT_API_TOKEN" \
+              https://www.virustotal.com/api/v3/files/upload_url | jq -r .data)
+            curl -sS -H "x-apikey: $VT_API_TOKEN" -F "file=@$file" "$upload_url" > /tmp/upload.json
+            analysis=$(jq -r .data.id /tmp/upload.json)
+            for _ in $(seq 1 30); do
+              sleep 20
+              state=$(curl -sS -H "x-apikey: $VT_API_TOKEN" \
+                "https://www.virustotal.com/api/v3/analyses/$analysis" | jq -r .data.attributes.status)
+              [ "$state" = "completed" ] && break
+            done
+            curl -sS -H "x-apikey: $VT_API_TOKEN" \
+              "https://www.virustotal.com/api/v3/files/$sha" -o /tmp/report.json
+          fi
+
+          detections=$(jq -r '.data.attributes.last_analysis_stats.malicious' /tmp/report.json)
+          total=$(jq -r '.data.attributes.last_analysis_stats | (.malicious + .suspicious + .undetected + .harmless)' /tmp/report.json)
+          link="https://www.virustotal.com/gui/file/$sha"
+
+          {
+            echo "### VirusTotal — $ASSET ($TAG)"
+            echo ""
+            echo "- detections: **$detections / $total**"
+            echo "- sha256: \`$sha\`"
+            echo "- report: $link"
+            echo ""
+            jq -r '.data.attributes.last_analysis_results
+                   | to_entries
+                   | map(select(.value.category == "malicious" or .value.category == "suspicious"))
+                   | if length == 0 then "_no engine flagged this file_" else .[] | "- \(.key): \(.value.result)" end' /tmp/report.json
+          } >> "$GITHUB_STEP_SUMMARY"

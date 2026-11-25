@@ -1,0 +1,40 @@
+# Flutter/Dart generated files
+.dart_tool/
+.packages
+.pub-cache/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Agent task briefs stay local; their decisions live in PROGRESS.md
+TASK_IMPORT_ROBUST.md
+TASK_SEMANTIC_SEARCH.md
+TASK_ANDROID.md
+TASK_SEMANTIC_PHASE2.md
+FIX_REVIEW.md
+
+# Private exports and local data stores
+*.zip
+# The demo seed asset must ship: `/?demo=fx` imports it at runtime.
+!assets/demo/facebook-export.zip
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sqlite-journal
+
+# Local secrets
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+
+# Release output and false-positive submission packages
+dist/
+security/av-false-positive/out/
+
+# Stitch reference screens: local visual reference only (large binaries)
+design/reference/stitch/*.png
+.idea/
+*.iml

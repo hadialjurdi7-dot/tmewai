@@ -1,0 +1,31 @@
+# Tmewai release hashes — baseline for the Defender false positive
+
+Recorded on 2026-10-30 from the exact archive users
+download. These are the files an antivirus engine sees; the FP report in this
+folder references the DLL hash below.
+
+Archive
+  file   tmewai-windows-x64.zip
+  size   14,276,584 bytes
+  sha256 5b38b96b206152d187ec7adbeead5b4a5c49600bedd36d62eb40e46672938f4c
+
+Portable folder contents (18 files)
+
+98fd6fbdc2773ae8ed2f834475079693c93ed070e63f6db71ea1d3faba35b8f7 *dartjni.dll  (58368 bytes)
+c4d698f1ccc25d3a40b3bf8700570f10cca95f2757279659a72d9583bf340faa *data/app.so  (7914376 bytes)
+b1caff19ffa479db3459fc9d5bb0baf561adfed0108209207be5c98562a118e8 *data/flutter_assets/AssetManifest.bin  (477 bytes)
+38a8d2a31b905235d17f7b56d030884df64e3aeb88130817debf8a4caff0e62f *data/flutter_assets/FontManifest.json  (379 bytes)
+8fadc0ac5cf0b86562abbf52c3cf012809e695644a2111512db00a0dcfdc869e *data/flutter_assets/NOTICES.Z  (109452 bytes)
+4ac70f7d67abb2ffc105d2cabfdee68c9aa138d132107e5be4949c539f7ce379 *data/flutter_assets/NativeAssetsManifest.json  (131 bytes)
+337085841f5caeef5ecd8f6754580763155e4391edd44527185d1e4b662ea3f1 *data/flutter_assets/assets/branding/tmewai_app_icon.png  (57734 bytes)
+691e0c891a38637ae6bbdb69700f8042cb0724a137bee615068ffdb92244f61f *data/flutter_assets/assets/fonts/IBMPlexSansArabic-Bold.ttf  (246992 bytes)
+b8363ab9f733dfa4f8e96b8b2102c24b5cf4110fb96d1d3d9a9412f6fb49cf74 *data/flutter_assets/assets/fonts/IBMPlexSansArabic-Medium.ttf  (242100 bytes)
+6f611412270a132bbac838da9259d4c68569b4175f3b3b8fa3fa36a30b56dab9 *data/flutter_assets/assets/fonts/IBMPlexSansArabic-Regular.ttf  (235924 bytes)
+597bd5502e5997be4414e4c9c88834b30ff3784250c84f20bce2b20e53ebd467 *data/flutter_assets/assets/fonts/IBMPlexSansArabic-SemiBold.ttf  (244616 bytes)
+80ea645f80960944b2666d7ca1e36968db850b53c2c88d9fe109d11a420df671 *data/flutter_assets/fonts/MaterialIcons-Regular.otf  (8188 bytes)
+1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af *data/flutter_assets/shaders/ink_sparkle.frag  (21856 bytes)
+bc7599dbbbaab310efe41520574138d21fb18a88c8fe4495ed79315309336f6f *data/flutter_assets/shaders/stretch_effect.frag  (17616 bytes)
+325a86063d26334c2eabe1743cea073b612540fbf3d8fc2ef0b5708e3763a8c7 *data/icudtl.dat  (864880 bytes)
+30494fb08f9f101a8fbe42568110aaa160efbd7341f3cfe877dc14214be3a233 *flutter_windows.dll  (21289472 bytes)
+3a29878d0936510af0f563dfc7668c561c92f7ebe1d9fef95975f721dc01b590 *sqlite3.dll  (1729024 bytes)
+8c388065095a60b5af023dea08b72c54cc773797b645579101ae7f0cf3bc9ec3 *tmewai.exe  (83968 bytes)
